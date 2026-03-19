@@ -1,0 +1,31 @@
+name: 주식 모니터링 자동 실행
+
+on:
+  schedule:
+    # 매일 오전 8시 30분 (한국시간) = UTC 23:30
+    - cron: "30 23 * * 1-5"   # 월~금 평일만
+  workflow_dispatch:            # 수동 실행 버튼
+
+jobs:
+  run-monitor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 코드 내려받기
+        uses: actions/checkout@v3
+
+      - name: Python 설치
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.11"
+
+      - name: 패키지 설치
+        run: pip install pykrx requests beautifulsoup4
+
+      - name: 스크립트 실행
+        env:
+          DART_API_KEY:    ${{ secrets.DART_API_KEY }}
+          EMAIL_SENDER:    ${{ secrets.EMAIL_SENDER }}
+          EMAIL_PASSWORD:  ${{ secrets.EMAIL_PASSWORD }}
+          EMAIL_RECEIVER:  ${{ secrets.EMAIL_RECEIVER }}
+        run: python monitor.py
