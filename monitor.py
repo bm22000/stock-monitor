@@ -1,4 +1,5 @@
-"""
+다운받으신 monitor.py 파일 내용이에요. GitHub 연필 아이콘 클릭 후 전체 선택(Ctrl+A) → 삭제 → 아래 내용 전체 복사해서 붙여넣으시면 됩니다!
+python"""
 주식 모니터링 자동화 스크립트
 - 실시간 주가 조회 (pykrx)
 - 네이버 금융 뉴스 크롤링
@@ -22,9 +23,9 @@ from bs4 import BeautifulSoup
 
 DART_API_KEY = os.environ.get("DART_API_KEY", "여기에_DART_API키_입력")
 
-EMAIL_SENDER   = os.environ.get("EMAIL_SENDER", "보내는이메일@gmail.com")
-EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "앱비밀번호_16자리")
-EMAIL_RECEIVER = os.environ.get("EMAIL_RECEIVER", "받는이메일@gmail.com")
+EMAIL_SENDER   = os.environ.get("EMAIL_SENDER", "보내는이메일@naver.com")
+EMAIL_PASSWORD = os.environ.get("EMAIL_PASSWORD", "네이버_로그인_비밀번호")
+EMAIL_RECEIVER = os.environ.get("EMAIL_RECEIVER", "받는이메일@naver.com")
 
 # 모니터링 종목 (종목코드: 회사명)
 STOCKS = {
@@ -89,11 +90,6 @@ def get_stock_prices():
 # ─────────────────────────────────────────
 
 def get_news(company_name, max_items=3):
-    url = (
-        "https://openapi.naver.com/v1/search/news.json"
-        f"?query={requests.utils.quote(company_name)}&display={max_items}&sort=date"
-    )
-    # 네이버 API 키 없이도 동작하는 RSS 방식
     rss_url = f"https://finance.naver.com/item/news_search.naver?query={requests.utils.quote(company_name)}&sm=tab_itm.top"
 
     try:
@@ -133,17 +129,10 @@ DART_CORP_CODES = {
 }
 
 def get_dart_disclosures(days=1):
-    """지분 변동 관련 공시 조회"""
     end_date   = datetime.today().strftime("%Y%m%d")
     start_date = (datetime.today() - timedelta(days=days)).strftime("%Y%m%d")
 
     all_disclosures = []
-
-    # 지분 관련 보고서 유형
-    report_types = [
-        ("SPIT", "대량보유보고서"),   # 5% 이상 대량 보유
-        ("ESPIT", "임원·주요주주 특수관계인 주식"),
-    ]
 
     corp_codes = list(DART_CORP_CODES.values())
 
@@ -157,7 +146,7 @@ def get_dart_disclosures(days=1):
             "corp_code": corp_code,
             "bgn_de":    start_date,
             "end_de":    end_date,
-            "pblntf_ty": "B",   # B = 지분공시
+            "pblntf_ty": "B",
             "page_count": 10,
         }
 
@@ -174,7 +163,7 @@ def get_dart_disclosures(days=1):
                         "link":      f"https://dart.fss.or.kr/dsaf001/main.do?rcpNo={item.get('rcept_no','')}",
                     })
         except Exception as e:
-            pass  # API 오류 시 건너뜀
+            pass
 
     return all_disclosures
 
@@ -186,7 +175,6 @@ def get_dart_disclosures(days=1):
 def build_html(prices, disclosures):
     today_str = datetime.today().strftime("%Y년 %m월 %d일")
 
-    # 주가 테이블
     price_rows = ""
     for p in prices:
         if "error" in p:
@@ -204,7 +192,6 @@ def build_html(prices, disclosures):
           <td style='text-align:right;color:#999'>{p['volume']:,}</td>
         </tr>"""
 
-    # 공시 섹션
     if disclosures:
         disc_rows = ""
         for d in disclosures:
@@ -269,7 +256,7 @@ def send_email(html_content):
     msg["To"]      = EMAIL_RECEIVER
     msg.attach(MIMEText(html_content, "html", "utf-8"))
 
-    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+    with smtplib.SMTP_SSL("smtp.naver.com", 465) as server:
         server.login(EMAIL_SENDER, EMAIL_PASSWORD)
         server.sendmail(EMAIL_SENDER, EMAIL_RECEIVER, msg.as_string())
     print(f"✅ 이메일 발송 완료 → {EMAIL_RECEIVER}")
