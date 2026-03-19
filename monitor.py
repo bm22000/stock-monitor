@@ -139,7 +139,7 @@ def send_email(html_content):
     msg["From"] = EMAIL_SENDER
     msg["To"] = EMAIL_RECEIVER
     msg.attach(MIMEText(html_content, "html", "utf-8"))
-    with smtplib.SMTP_SSL("smtp.naver.com", 465) as server:
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
         server.login(EMAIL_SENDER, EMAIL_PASSWORD)
         server.sendmail(EMAIL_SENDER, EMAIL_RECEIVER, msg.as_string())
     print("이메일 발송 완료: " + EMAIL_RECEIVER)
