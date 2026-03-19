@@ -1,10 +1,9 @@
-yamlname: 주식 모니터링 자동 실행
+name: 주식 모니터링 자동 실행
 
 on:
   schedule:
-    # 매일 오전 8시 30분 (한국시간) = UTC 23:30
-    - cron: "30 23 * * 1-5"   # 월~금 평일만
-  workflow_dispatch:            # 수동 실행 버튼
+    - cron: "30 23 * * 1-5"
+  workflow_dispatch:
 
 jobs:
   run-monitor:
