@@ -106,8 +106,50 @@ def get_dart_disclosures(days=1):
     return all_disclosures
 
 def build_html(prices, disclosures):
-    today_str = datetime.today().strftime("%Y%m%d %H:%M")
+    today_str = datetime.today().strftime("%Y년 %m월 %d일 %H:%M")
     price_rows = ""
     for p in prices:
         if "error" in p:
-            price_rows += "<tr><td>{}</td><td colspan='4' style='
+            price_rows += "<tr><td>{}</td><td colspan='4' style='color:#999'>{}</td></tr>".format(p["name"], p["error"])
+            continue
+        arrow = "▲" if p["change"] >= 0 else "▼"
+        color = "#e63946" if p["change"] >= 0 else "#1d7ccd"
+        sign = "+" if p["change"] >= 0 else ""
+        price_rows += "<tr><td><b>{name}</b><br><span style='color:#999;font-size:11px'>{code}</span></td><td style='text-align:right'>{close:,}원</td><td style='text-align:right;color:{color}'>{arrow} {sign}{change:,}원</td><td style='text-align:right;color:{color}'>{sign}{pct}%</td><td style='text-align:right;color:#999'>{volume:,}</td></tr>".format(
+            name=p["name"], code=p["code"], close=p["close"],
+            color=color, arrow=arrow, sign=sign,
+            change=abs(p["change"]), pct=p["change_pct"], volume=p["volume"]
+        )
+    if disclosures:
+        disc_rows = ""
+        for d in disclosures:
+            disc_rows += "<tr><td><b>{company}</b></td><td><a href='{link}' style='color:#1d7ccd'>{title}</a></td><td>{submitter}</td><td>{date}</td></tr>".format(**d)
+        disc_section = "<h2>지분 변동 공시</h2><table style='width:100%;border-collapse:collapse;font-size:13px'><tr style='background:#f4f4f4'><th style='padding:8px;text-align:left'>회사</th><th style='padding:8px;text-align:left'>공시 제목</th><th style='padding:8px;text-align:left'>제출인</th><th style='padding:8px;text-align:left'>일자</th></tr>{}</table>".format(disc_rows)
+    else:
+        disc_section = "<p style='color:#999'>오늘 지분 변동 공시가 없습니다.</p>"
+
+    return "<html><body style='font-family:Malgun Gothic,sans-serif;color:#222;max-width:700px;margin:auto;padding:20px'><h1 style='font-size:20px;border-bottom:2px solid #222;padding-bottom:8px'>주식 모니터링 리포트 {today}</h1><h2>주가 현황</h2><table style='width:100%;border-collapse:collapse;font-size:13px'><tr style='background:#f4f4f4'><th style='padding:8px;text-align:left'>종목</th><th style='padding:8px;text-align:right'>종가</th><th style='padding:8px;text-align:right'>전일대비</th><th style='padding:8px;text-align:right'>등락률</th><th style='padding:8px;text-align:right'>거래량</th></tr>{rows}</table>{disc}<p style='color:#aaa;font-size:11px;margin-top:40px'>자동 생성 리포트 | 주가: pykrx | 공시: DART OpenAPI</p></body></html>".format(
+        today=today_str, rows=price_rows, disc=disc_section
+    )
+
+def send_email(html_content):
+    today_str = datetime.today().strftime("%Y-%m-%d")
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "주식 모니터링 리포트 " + today_str
+    msg["From"] = EMAIL_SENDER
+    msg["To"] = EMAIL_RECEIVER
+    msg.attach(MIMEText(html_content, "html", "utf-8"))
+    with smtplib.SMTP_SSL("smtp.naver.com", 465) as server:
+        server.login(EMAIL_SENDER, EMAIL_PASSWORD)
+        server.sendmail(EMAIL_SENDER, EMAIL_RECEIVER, msg.as_string())
+    print("이메일 발송 완료: " + EMAIL_RECEIVER)
+
+if __name__ == "__main__":
+    print("주가 조회 중...")
+    prices = get_stock_prices()
+    print("DART 공시 조회 중...")
+    disclosures = get_dart_disclosures(days=1)
+    print("이메일 발송 중...")
+    html = build_html(prices, disclosures)
+    send_email(html)
+    print("완료!")
